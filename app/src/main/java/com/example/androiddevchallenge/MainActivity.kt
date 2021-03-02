@@ -15,22 +15,35 @@
  */
 package com.example.androiddevchallenge
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
+import androidx.annotation.DrawableRes
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
+import androidx.compose.material.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
 import com.example.androiddevchallenge.ui.theme.MyTheme
 
+
 class MainActivity : AppCompatActivity() {
+    private val viewModel: DogViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MyTheme {
-                MyApp()
+                MyApp(viewModel)
+            }
+        }
+        viewModel.detailDog.observe(this) {
+            if (it != -1) {
+                startActivity(Intent(this, DetailActivity::class.java).apply {
+                    putExtra(DetailActivityParams.POSITION, it)
+                })
             }
         }
     }
@@ -38,11 +51,19 @@ class MainActivity : AppCompatActivity() {
 
 // Start building your app here!
 @Composable
-fun MyApp() {
-    Surface(color = MaterialTheme.colors.background) {
-        Text(text = "Ready... Set... GO!")
+fun MyApp(viewModel: DogViewModel? = null) {
+    Scaffold(topBar = {
+        TopAppBar(title = { Text(text = "Dogs") })
+    }) {
+        Surface(color = MaterialTheme.colors.background) {
+            DogList {
+                val position = Dogs.indexOf(it)
+                viewModel?.navigationToDetailPage(position = position)
+            }
+        }
     }
 }
+
 
 @Preview("Light Theme", widthDp = 360, heightDp = 640)
 @Composable
@@ -59,3 +80,51 @@ fun DarkPreview() {
         MyApp()
     }
 }
+
+
+class DogViewModel : ViewModel() {
+
+    private val _detailDog = MutableLiveData(-1)
+    val detailDog: LiveData<Int> = _detailDog
+
+    fun navigationToDetailPage(position: Int) {
+        _detailDog.value = position
+    }
+
+}
+
+data class Dog(
+    val name: String,
+    val age: String,
+    val sex: Gender,
+    @DrawableRes val image: Int,
+    val detail: String
+)
+
+enum class Gender(val value: String) {
+    FEMALE("female"),
+    MALE("male")
+}
+
+val Dogs = listOf(
+    Dog(
+        "Devi",
+        "2 months",
+        Gender.MALE,
+        R.drawable.devi_dogs,
+        "At DogTime, our mission is to keep dogs out of shelters and get them adopted to good homes by providing novice and experienced owners alike with the important information needed to make them, and their dogs, very happy and healthy."
+    ),
+    Dog(
+        "Bella",
+        "6 months",
+        Gender.FEMALE,
+        R.drawable.walking_the_dog_day,
+        "DogTime covers all things dog. Our extensive pure- and mixed-breed profiles include the history and evaluation of various dog breed characteristics--such as behaviors, shedding, adaptability--and what they mean for a potential owner."
+    ), Dog(
+        "Molly",
+        "12 months",
+        Gender.FEMALE,
+        R.drawable.gum_disease_dogs,
+        "For those looking to take the plunge and adopt a four-legged friend, take the matchup quiz and questionnaire to find the pooch who best fits your lifestyle and interests. You can even check local shelters in your zip code using our adoption page. And don't forget the extensive lists of dog names by breed, theme, and other categories."
+    )
+)
